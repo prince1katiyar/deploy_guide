@@ -17,7 +17,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ap-south-1
     
     - name: Login to Amazon ECR
       id: login-ecr
@@ -44,16 +44,15 @@ jobs:
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
+        username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         port: 22
         script_stop: true
-        envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,AWS_REGION
+        envs: ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         script: |
           mkdir -p ~/deploy_guide
           cat > ~/deploy_guide/deploy_container.sh << 'EOL'
@@ -67,7 +66,6 @@ jobs:
           ECR_REGISTRY=${ECR_REGISTRY}
           ECR_REPOSITORY=${ECR_REPOSITORY}
           IMAGE_TAG=${IMAGE_TAG}
-          AWS_REGION=${AWS_REGION}
 
           # Update system packages
           sudo apt-get update
@@ -89,7 +87,7 @@ jobs:
               sudo apt-get install -y nginx
           fi
 
-          # Install AWS CLI if not installed
+          # Install AWS CLI v2 if not installed
           if ! command -v aws &> /dev/null; then
               echo "Installing AWS CLI..."
               sudo apt-get install -y unzip
@@ -126,20 +124,20 @@ jobs:
 
           # Login to ECR
           echo "Logging in to Amazon ECR..."
-          aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
           # Stop any running container
           echo "Stopping any existing container..."
-          docker stop streamlit-container 2>/dev/null || true
-          docker rm streamlit-container 2>/dev/null || true
+          sudo docker stop streamlit-container 2>/dev/null || true
+          sudo docker rm streamlit-container 2>/dev/null || true
 
           # Pull the latest image
           echo "Pulling the latest image from ECR..."
-          docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          sudo docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
           # Run the container
           echo "Starting the container..."
-          docker run -d --name streamlit-container -p 8501:8501 --restart always ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+          sudo docker run -d --name streamlit-container -p 8501:8501 --restart always ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
           echo "Deployment completed successfully!"
           EOL

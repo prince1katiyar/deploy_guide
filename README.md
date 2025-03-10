@@ -63,3 +63,8 @@ ECR_REPOSITORY: Your ECR repository name
 EC2_HOST: Your EC2 instance public IP or DNS
 EC2_USERNAME: Username for SSH (usually "ubuntu" for Ubuntu instances)
 EC2_SSH_KEY: The private SSH key content (.pem file)
+
+
+715841335868.dkr.ecr.ap-south-1.amazonaws.com/streamlit-app
+
+cat /path/to/your-key.pem
