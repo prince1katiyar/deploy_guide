@@ -38,19 +38,35 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
     
+    - name: Install Nginx
+      run: |
+        # Install Nginx if not installed
+        if ! command -v nginx &> /dev/null; then
+            echo "Installing Nginx..."
+            sudo apt-get update
+            sudo apt-get install -y nginx
+        fi
+        
+        # Create directories if they don't exist
+        sudo mkdir -p /etc/nginx/sites-available
+        sudo mkdir -p /etc/nginx/sites-enabled
+    
     - name: Deploy Container
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        IMAGE_TAG: ${{ github.sha }}
       run: |
         # Stop any existing container
         docker stop streamlit-container 2>/dev/null || true
         docker rm streamlit-container 2>/dev/null || true
         
         # Run the container
-        docker run -d --name streamlit-container -p 8501:8501 --restart always ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+        docker run -d --name streamlit-container -p 8501:8501 --restart always $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         
-        # Configure Nginx if needed
-        if [ ! -f "/etc/nginx/sites-available/streamlit" ]; then
-            echo "Creating Nginx configuration..."
-            cat > /tmp/streamlit_nginx << 'EOL'
+        # Configure Nginx
+        echo "Creating Nginx configuration..."
+        cat > /tmp/streamlit_nginx << 'EOL'
         server {
             listen 80;
             server_name _;
@@ -66,9 +82,8 @@ jobs:
             }
         }
         EOL
-            sudo cp /tmp/streamlit_nginx /etc/nginx/sites-available/streamlit
-            sudo ln -sf /etc/nginx/sites-available/streamlit /etc/nginx/sites-enabled/
-            sudo rm -f /etc/nginx/sites-enabled/default
-            sudo nginx -t
-            sudo systemctl restart nginx
-        fi
+        sudo cp /tmp/streamlit_nginx /etc/nginx/sites-available/streamlit
+        sudo ln -sf /etc/nginx/sites-available/streamlit /etc/nginx/sites-enabled/
+        sudo rm -f /etc/nginx/sites-enabled/default 2>/dev/null || true
+        sudo nginx -t
+        sudo systemctl restart nginx

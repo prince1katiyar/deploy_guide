@@ -70,3 +70,15 @@ EC2_SSH_KEY: The private SSH key content (.pem file)
 cat /path/to/your-key.pem
 
 '/Users/myhome/Downloads/streamlit app.pem'
+
+Install the runner as a service:
+bashCopysudo ./svc.sh install
+
+Start the runner service:
+bashCopysudo ./svc.sh start
+
+Verify the service is running:
+bashCopysudo ./svc.sh status
+
+
+Now your runner should be up and running! You can verify this by:
