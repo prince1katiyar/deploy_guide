@@ -68,3 +68,5 @@ EC2_SSH_KEY: The private SSH key content (.pem file)
 715841335868.dkr.ecr.ap-south-1.amazonaws.com/streamlit-app
 
 cat /path/to/your-key.pem
+
+'/Users/myhome/Downloads/streamlit app.pem'
